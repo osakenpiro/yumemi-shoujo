@@ -1,0 +1,616 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>夢見る少女は眠れない — しずかな放置ゲーム</title>
+<meta name="description" content="起こさずに、待てますか。ねむりを ON/OFF ではなく 0.0〜1.0 の Float で愛でる、二重放置ゲーム。">
+<meta property="og:title" content="夢見る少女は眠れない">
+<meta property="og:description" content="起動しても、少女は寝ている。自然に起きるまで待つ——ねむりをFloatで愛でる、しずかな放置ゲーム。">
+<meta property="og:url" content="https://osakenpiro.github.io/yumemi-shoujo/">
+<meta property="og:image" content="https://osakenpiro.github.io/yumemi-shoujo/img/sleep.jpg">
+<meta property="og:type" content="website">
+<meta name="twitter:card" content="summary_large_image">
+<style>
+:root{
+  --gold:#d4a853;
+  --gold-dim:#8a6e36;
+  --void:#0b0e1a;
+  --void2:#11152a;
+  --ink:#e8e2d4;
+  --ink-dim:#9a94a8;
+  --panel:rgba(14,17,34,.82);
+  --line:rgba(212,168,83,.35);
+}
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{height:100%}
+body{
+  background:radial-gradient(ellipse at 50% -10%, #1a1f3a 0%, var(--void) 55%, #070910 100%);
+  color:var(--ink);
+  font-family:"Hiragino Maru Gothic ProN","BIZ UDGothic","Yu Gothic UI",system-ui,sans-serif;
+  min-height:100dvh;
+  display:flex;flex-direction:column;align-items:center;
+  overflow-x:hidden;
+}
+/* stars */
+#stars{position:fixed;inset:0;pointer-events:none;z-index:0}
+.star{position:absolute;width:2px;height:2px;border-radius:50%;background:#fff;opacity:.5;animation:tw 3.4s infinite}
+@keyframes tw{0%,100%{opacity:.15}50%{opacity:.7}}
+
+#app{position:relative;z-index:1;width:100%;max-width:760px;padding:10px 12px 28px;display:flex;flex-direction:column;gap:10px}
+
+header{display:flex;justify-content:space-between;align-items:flex-end;gap:8px;padding:4px 2px}
+h1{font-size:1.06rem;letter-spacing:.12em;color:var(--gold);font-weight:600;text-shadow:0 0 14px rgba(212,168,83,.35)}
+h1 small{display:block;font-size:.62rem;color:var(--ink-dim);letter-spacing:.28em;margin-top:3px;font-weight:400}
+.hbtns{display:flex;gap:6px}
+.hbtn{background:none;border:1px solid var(--line);color:var(--gold);border-radius:8px;font-size:.78rem;padding:5px 9px;cursor:pointer;font-family:inherit}
+.hbtn:hover{background:rgba(212,168,83,.12)}
+
+/* scene */
+#scene{position:relative;border-radius:16px;overflow:hidden;border:1px solid var(--line);
+  aspect-ratio:7/4;background:linear-gradient(180deg,#141831 0%,#0d1024 70%,#0a0c1c 100%);
+  box-shadow:0 8px 40px rgba(0,0,0,.55), inset 0 0 60px rgba(0,0,0,.35);}
+#scene img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;opacity:0;transition:opacity 1.6s ease}
+#scene img.show{opacity:1}
+#scene.sleeping img.show{animation:breathe 6.5s ease-in-out infinite}
+@keyframes breathe{0%,100%{transform:scale(1)}50%{transform:scale(1.012)}}
+#scene .vig{position:absolute;inset:0;background:radial-gradient(ellipse at 50% 60%, transparent 52%, rgba(5,6,14,.55) 100%);pointer-events:none}
+#scene.shake1{animation:sh .35s}
+#scene.shake2{animation:sh .22s 2}
+@keyframes sh{0%,100%{transform:translateX(0)}25%{transform:translateX(-5px)}75%{transform:translateX(5px)}}
+#noimg{position:absolute;inset:0;display:none;align-items:center;justify-content:center;font-size:4rem;opacity:.6}
+#scene.noimg #noimg{display:flex}
+#tapHint{position:absolute;left:0;right:0;bottom:8px;text-align:center;font-size:.68rem;color:rgba(232,226,212,.5);pointer-events:none;text-shadow:0 1px 4px #000}
+#zzz{position:absolute;top:10px;right:14px;font-size:1.3rem;opacity:.85;animation:zfloat 3s ease-in-out infinite;text-shadow:0 0 10px rgba(212,168,83,.5)}
+@keyframes zfloat{0%,100%{transform:translateY(0);opacity:.5}50%{transform:translateY(-6px);opacity:.95}}
+
+/* meters */
+#meters{display:flex;gap:10px;flex-wrap:wrap}
+.meter{flex:1;min-width:200px;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:9px 12px}
+.meter .lbl{display:flex;justify-content:space-between;font-size:.72rem;color:var(--ink-dim);letter-spacing:.14em;margin-bottom:6px}
+.meter .lbl b{color:var(--gold);font-family:"Consolas","Courier New",monospace;font-size:.84rem;letter-spacing:.05em}
+.bar{height:7px;border-radius:4px;background:rgba(255,255,255,.07);overflow:hidden}
+.bar i{display:block;height:100%;width:0%;border-radius:4px;
+  background:linear-gradient(90deg,var(--gold-dim),var(--gold) 80%,#f4d489);
+  box-shadow:0 0 8px rgba(212,168,83,.55);transition:width .45s ease}
+.meter .sub{font-size:.62rem;color:var(--ink-dim);margin-top:5px;letter-spacing:.06em}
+
+/* shelf */
+#shelf{display:flex;gap:6px;justify-content:center;flex-wrap:wrap;background:var(--panel);border:1px solid rgba(212,168,83,.18);border-radius:12px;padding:7px 10px}
+.slot{width:30px;height:30px;display:flex;align-items:center;justify-content:center;font-size:18px;border-radius:8px;background:rgba(255,255,255,.04)}
+.slot.empty{opacity:.18;filter:grayscale(1)}
+#shelfNote{font-size:.6rem;color:var(--ink-dim);text-align:center;letter-spacing:.12em;margin-top:-4px}
+
+/* dialog */
+#dialog{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:14px 16px;min-height:118px;
+  box-shadow:0 4px 24px rgba(0,0,0,.4);backdrop-filter:blur(4px);display:flex;flex-direction:column;gap:10px}
+#speaker{font-size:.66rem;color:var(--gold);letter-spacing:.22em}
+#text{font-size:.95rem;line-height:1.95;min-height:3.4em;white-space:pre-wrap}
+#text .cursor{display:inline-block;width:.55em;animation:blink 1s steps(1) infinite;color:var(--gold)}
+@keyframes blink{50%{opacity:0}}
+#choices{display:flex;flex-wrap:wrap;gap:8px}
+.choice{background:rgba(212,168,83,.08);border:1px solid var(--line);color:var(--ink);border-radius:10px;
+  padding:8px 14px;font-size:.86rem;cursor:pointer;font-family:inherit;transition:all .15s}
+.choice:hover{background:rgba(212,168,83,.22);border-color:var(--gold)}
+#promiseBox{display:none;gap:8px;width:100%}
+#promiseBox input{flex:1;background:rgba(255,255,255,.06);border:1px solid var(--line);border-radius:10px;
+  color:var(--ink);padding:9px 12px;font-size:.9rem;font-family:inherit;outline:none}
+#promiseBox input:focus{border-color:var(--gold)}
+#next{align-self:flex-end;display:none;background:none;border:none;color:var(--gold);font-size:.8rem;cursor:pointer;
+  letter-spacing:.2em;animation:blink 1.6s infinite;font-family:inherit}
+
+/* footer */
+footer{margin-top:6px;text-align:center;font-size:.66rem;color:var(--ink-dim);line-height:2}
+footer a{color:var(--gold-dim);text-decoration:none}
+footer a:hover{color:var(--gold)}
+
+/* modal */
+.modal{position:fixed;inset:0;background:rgba(4,5,12,.8);display:none;align-items:center;justify-content:center;z-index:50;padding:16px}
+.modal.open{display:flex}
+.mbox{background:var(--void2);border:1px solid var(--line);border-radius:16px;max-width:560px;width:100%;max-height:78dvh;
+  overflow-y:auto;padding:20px 22px;box-shadow:0 10px 60px rgba(0,0,0,.7)}
+.mbox h2{font-size:.95rem;color:var(--gold);letter-spacing:.18em;margin-bottom:12px}
+.mbox p{font-size:.82rem;line-height:2;color:var(--ink);margin-bottom:10px}
+.mbox p.dim{color:var(--ink-dim);font-size:.74rem}
+.mclose{margin-top:8px;width:100%;background:rgba(212,168,83,.1);border:1px solid var(--line);color:var(--gold);
+  border-radius:10px;padding:9px;font-size:.85rem;cursor:pointer;font-family:inherit}
+.dent{border-bottom:1px dashed rgba(212,168,83,.2);padding:10px 2px}
+.dent .dd{font-size:.64rem;color:var(--ink-dim);letter-spacing:.1em;margin-bottom:4px}
+.dent .dt{font-size:.82rem;line-height:1.9;white-space:pre-wrap}
+.dent .tag{display:inline-block;font-size:.6rem;color:var(--gold-dim);border:1px solid rgba(212,168,83,.25);border-radius:6px;padding:1px 6px;margin-left:6px}
+
+#toast{position:fixed;left:50%;bottom:88px;transform:translateX(-50%);background:rgba(20,24,46,.95);border:1px solid var(--line);
+  color:var(--ink);font-size:.8rem;padding:8px 16px;border-radius:20px;opacity:0;transition:opacity .3s;pointer-events:none;z-index:60;white-space:nowrap}
+#toast.show{opacity:1}
+
+@media(max-width:480px){
+  h1{font-size:.95rem}
+  #text{font-size:.88rem}
+  .meter{min-width:46%}
+}
+</style>
+</head>
+<body>
+<div id="stars"></div>
+<div id="app">
+  <header>
+    <h1>夢見る少女は眠れない<small>しずかな放置ゲーム ─ 起こさずに、待てますか</small></h1>
+    <div class="hbtns">
+      <button class="hbtn" id="btnDiary" title="ゆめにっき">📖</button>
+      <button class="hbtn" id="btnInfo" title="このゲームについて">？</button>
+    </div>
+  </header>
+
+  <div id="scene" class="sleeping">
+    <img id="imgSleep" src="img/sleep.jpg" alt="ねむる少女">
+    <img id="imgAwake" src="img/awake.jpg" alt="めをさました少女">
+    <div id="noimg">💤</div>
+    <div class="vig"></div>
+    <div id="zzz">💤</div>
+    <div id="tapHint"></div>
+  </div>
+
+  <div id="meters">
+    <div class="meter">
+      <div class="lbl"><span>ねむり</span><b id="vSleep">1.00</b></div>
+      <div class="bar"><i id="bSleep"></i></div>
+      <div class="sub" id="sleepSub">Boolean じゃない。ゆっくり うすれていく。</div>
+    </div>
+    <div class="meter">
+      <div class="lbl"><span>ゆめのこさ</span><b id="vDream">0.00</b></div>
+      <div class="bar"><i id="bDream"></i></div>
+      <div class="sub">はなれていた じかんが、ゆめを こく する。</div>
+    </div>
+  </div>
+
+  <div id="shelf"></div>
+  <div id="shelfNote">しぜんに おきられた あさ の かず だけ、へやに ものが ふえる</div>
+
+  <div id="dialog">
+    <div id="speaker">ゆめみ</div>
+    <div id="text"></div>
+    <div id="choices"></div>
+    <div id="promiseBox">
+      <input id="promiseInput" maxlength="40" placeholder="たとえば「さんぽする」とか……">
+      <button class="choice" id="promiseSend">つたえる</button>
+    </div>
+    <button id="next">▼ つぎへ</button>
+  </div>
+
+  <footer>
+    <a href="#" id="btnShare">𝕏 でシェア</a> ・
+    <a href="https://osakenpiro.github.io/" target="_blank" rel="noopener">osakenpiro</a> ─ #全人類UX改善計画<br>
+    ねむりは ON/OFF じゃなく 0.0〜1.0 ── Boolean → Float
+  </footer>
+</div>
+
+<div class="modal" id="mDiary"><div class="mbox">
+  <h2>📖 ゆめにっき</h2>
+  <div id="diaryList"></div>
+  <button class="mclose" data-close="mDiary">とじる</button>
+</div></div>
+
+<div class="modal" id="mInfo"><div class="mbox">
+  <h2>このゲームについて</h2>
+  <p>「夢見る少女は眠れない」は、<b>二重放置ゲーム</b>です。</p>
+  <p>① アプリを<b>ひらいていない時間</b>が、夢を こく します（ゆめのこさ）。<br>
+     ② ひらいても、少女は ねむっています。<b>自然に起きるまで待つ</b>のが、いちばんの遊びかたです。</p>
+  <p>タップ連打で おこすことも できます。でも、むりやり おこされた少女は、見ていた夢を わすれてしまいます。</p>
+  <p>自然に目ざめた少女は、夢の話をしてくれます。その夢は、あなたが「ねている間に何をしていたか」で、すこしだけ 変わります。気のせいかもしれない くらい、すこしだけ。</p>
+  <p class="dim">ねむりを ON/OFF の Boolean ではなく、0.0〜1.0 の Float として あつかう——osakenpiro の全プロジェクトを つらぬく設計思想（Boolean → Float / BeeF）の、いちばん しずかな実装です。</p>
+  <p class="dim">このさき：嘘を見抜く少女（信頼度Float）／コウノトリ／天気連動の夢。ぜんぶ、まだ 夢のなか。</p>
+  <p class="dim">画風『ひとあかり』── muted な画面に、ひとつの明かり。</p>
+  <button class="mclose" data-close="mInfo">とじる</button>
+</div></div>
+
+<div id="toast"></div>
+
+<script>
+"use strict";
+/* ============ utils ============ */
+const $=s=>document.querySelector(s);
+const DBG=/[?&]debug/.test(location.search);
+const TSCALE=DBG?1/12:1;
+const now=()=>Date.now();
+const rnd=(a,b)=>a+Math.random()*(b-a);
+const ri=(a,b)=>Math.floor(rnd(a,b+1));
+const clamp01=x=>Math.max(0,Math.min(1,x));
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+function pick(arr){return arr[Math.floor(Math.random()*arr.length)];}
+
+/* ============ state ============ */
+const KEY="yumemi-shoujo-v1";
+let st=null;
+function defaults(){return {v:1,created:now(),lastSeen:now(),cycle:null,lastReport:null,lastPromise:null,promiseBonus:false,diary:[],naturalWakes:0,forcedWakes:0,visits:0,seenIntro:false};}
+function load(){try{const r=localStorage.getItem(KEY);return r?Object.assign(defaults(),JSON.parse(r)):defaults();}catch(e){return defaults();}}
+function save(){try{localStorage.setItem(KEY,JSON.stringify(st));}catch(e){}}
+
+/* ============ dream dictionary (カテゴリプール方式) ============ */
+const NOUNS={
+  "そら":["雲のかいだん","さかさまの虹","ひこうき雲のリボン","あさやけの海","風のかたまり","そらいろのドア"],
+  "ほし":["ちいさな星","ながれ星のしっぽ","星のすなつぶ","三日月のふね","とおい銀河","星座のあみもの"],
+  "うみ":["よるの海","ガラスの波","くじらのせなか","しんかいの灯","うずまきの貝","しおのにおいの手紙"],
+  "もり":["しずかな森","ひかるキノコ","こけのじゅうたん","としおいた大樹","木もれ日のプール","どんぐりの行列"],
+  "まち":["ねむらない街","ろじうらの自どうはんばいき","しらない駅","ゆうぐれの商店がい","屋根のうえの道","ポストのなかの部屋"],
+  "へや":["おおきなベッド","まくらの下のトンネル","ふるい本だな","あったかい毛布のやま","ランプのあかり","ひきだしのおく"],
+  "おかし":["ホットケーキのタワー","金平糖のあめ","チョコレートの川","わたあめの雲","いちごのやま","ビスケットの橋"],
+  "どうぶつ":["しろいねこ","ふとったたぬき","めがねのフクロウ","ちいさなりゅう","ひつじのむれ","しゃべるカメ"],
+  "とり":["コウノトリ","わたり鳥のたい列","青い小鳥","羽根のてがみ","とりかごの中の歌","つばさのかげ"],
+  "ことば":["よめない本","インクのにおい","としょかんの迷路","ひらがなの雨","ふるい辞書","だれかのしおり"],
+  "おんがく":["オルゴールのねじ","とおくのピアノ","くちぶえの道","ねむりの子もり歌","ガラスのすず","レコードのうずまき"],
+  "きかい":["はぐるまの庭","ぜんまいじかけの月","ロボットのゆびさき","ねじのゆりかご","でんしゃのまど","とけいのうら側"],
+  "ひかり":["ひとつのランプ","ろうそくのゆれ","あけがたのひかり","まどのむこうの灯","ほたるのあかり","金いろのほこり"],
+  "ゆき":["こなゆきのカーテン","ゆきだるまのぼうし","こおりの花","しろいいき","ゆきあかりの夜","つららのピアノ"],
+  "はな":["たんぽぽのわたげ","よるにさく花","はなびらの川","ひまわりのめいろ","おしばなの手帳","あじさいのかさ"],
+  "まつり":["とおくの花火","ちょうちんの列","りんごあめ","きんぎょすくいの金魚","おめんやさん","よみせのざわめき"],
+  "とびら":["しらないドア","ちいさなカギ","あかずの間","ノックの音","かぎあなのむこう","まわりつづけるドアノブ"],
+  "よる":["よるのプール","ねしずまった町","とけいの音だけの部屋","カーテンのすきま","夜きしゃ","ねむれない時計"]
+};
+const PATTERNS=[
+  "{a}が、{b}みたいに ひかってた",
+  "{a}の うえを、はだしで あるいた",
+  "そらから {a}が ふってきた",
+  "{a}と、すこしだけ おしゃべりした",
+  "{a}を ポケットに しまった",
+  "{a}が、どこまでも ならんでた",
+  "{a}の なかに もぐりこんだ",
+  "{a}が、ちいさな こえで うたってた",
+  "{a}を ひろって、たいせつに もちあるいた",
+  "{a}が、さかさまに うかんでた",
+  "どこからか {a}の においが した",
+  "{a}が とけて、{b}に なった",
+  "{a}を さがしてたの。なぜか ずっと",
+  "{a}に みずを あげた"
+];
+const CONNECTORS=["そしたらね、","きがつくと、","いつのまにか、","なぜか そこで、","そのつぎはね、","でも ほんとうはね、"];
+const EMOTIONS=["なつかしかった","うれしかった","すこし さびしかった","ふしぎだった","むねが ぽかぽかした","ちょっとだけ こわかった。でも、へいきだった"];
+
+/* 自己申告(案A) → カテゴリ重みづけ 1.4x */
+const REPORTS=[
+  {key:"work", label:"はたらいてた", cats:["きかい","まち"], reply:"そっか。おつかれさま。……えらいね。"},
+  {key:"play", label:"あそんでた", cats:["まつり","おかし"], reply:"いいなあ。こんど、なにして あそんだか おしえてね。"},
+  {key:"read", label:"本を よんでた", cats:["ことば","とびら"], reply:"どんな おはなし？ ……あとで、すこしだけ かして。"},
+  {key:"out",  label:"そとに いた", cats:["そら","もり","とり"], reply:"そとの におい、つれてきてくれた？"},
+  {key:"slept",label:"ずっと ねてた", cats:["へや","よる"], reply:"ふふ、おそろいだね。"},
+  {key:"secret",label:"ひみつ", cats:["とびら","ほし"], reply:"ひみつかあ。……じゃあ、ゆめのほうが おしゃべりだね。"}
+];
+function seasonCats(){
+  const m=new Date().getMonth()+1, h=new Date().getHours(), d=new Date().getDay();
+  const c=[];
+  if(m===12||m<=2)c.push("ゆき");
+  else if(m<=5)c.push("はな","もり");
+  else if(m<=8)c.push("うみ","まつり");
+  else c.push("ほし","もり");
+  if(h>=22||h<=4)c.push("よる","ほし");
+  if(h>=5&&h<=9)c.push("ひかり");
+  if(d===0||d===6)c.push("まつり");
+  return c;
+}
+function weightedCat(biasCats){
+  const seas=seasonCats();
+  const entries=Object.keys(NOUNS).map(c=>{
+    let w=1.0;
+    if(biasCats.includes(c))w=1.4;       // 自己申告バイアス
+    else if(seas.includes(c))w=1.2;      // 季節・時間スパイス
+    return [c,w];
+  });
+  const tot=entries.reduce((s,e)=>s+e[1],0);
+  let r=Math.random()*tot;
+  for(const [c,w] of entries){ r-=w; if(r<=0)return c; }
+  return entries[entries.length-1][0];
+}
+function genDream(rank,fragsN,seeds,reportKey,bonus){
+  const rep=REPORTS.find(r=>r.key===reportKey);
+  const bias=rep?rep.cats:[];
+  let n=fragsN+(bonus?1:0); n=Math.max(2,Math.min(5,n));
+  const frags=[];
+  const usedNouns=new Set();
+  for(let i=0;i<n;i++){
+    let a;
+    if(i<seeds.length){ a=seeds[i]; }            // 寝言の種を必ず織りこむ
+    else{
+      const cat=weightedCat(bias);
+      a=pick(NOUNS[cat]);
+      let guard=0; while(usedNouns.has(a)&&guard++<8){a=pick(NOUNS[weightedCat(bias)]);}
+    }
+    usedNouns.add(a);
+    let b=a, g=0;
+    while((b===a)&&g++<8){ b=pick(NOUNS[weightedCat(bias)]); }
+    let pat=pick(PATTERNS);
+    if(n<=2)pat=pat.replace("どこまでも ","");
+    frags.push(pat.replace("{a}",a).replace("{b}",b));
+  }
+  let txt="えっとね……。"+frags[0]+"。";
+  for(let i=1;i<frags.length;i++){ txt+="\n"+pick(CONNECTORS)+frags[i]+"。"; }
+  if(reportKey==="slept"&&Math.random()<0.5){ txt+="\nゆめのなかでも、わたし、ねてたみたい。"; }
+  txt+="\nめが さめたら、"+pick(EMOTIONS)+"。";
+  return txt;
+}
+function pickSeeds(){
+  const c1=weightedCat([]),c2=weightedCat([]);
+  return [pick(NOUNS[c1]),pick(NOUNS[c2])];
+}
+
+/* ============ cycle ============ */
+const HOUR=3600*1000;
+function newCycle(absenceMs,opt){
+  opt=opt||{};
+  let rank;
+  if(opt.rank!==undefined)rank=opt.rank;
+  else if(absenceMs<60*1000)rank=0.3;
+  else rank=clamp01(absenceMs/(8*HOUR))*0.85+0.15;
+  const waitSec=(opt.short?rnd(40,90):(50+rank*130+rnd(0,30)))*TSCALE;
+  const t=now();
+  return {phase:"sleeping",sleepStart:t,wakeAt:t+waitSec*1000,rank:rank,
+          fragsN:Math.max(2,Math.min(5,2+Math.floor(rank*3.001))),
+          seeds:pickSeeds(),missed:!!opt.missed,earsUsed:0};
+}
+
+/* ============ presentation ============ */
+const scene=$("#scene"),imgS=$("#imgSleep"),imgA=$("#imgAwake");
+const elText=$("#text"),elChoices=$("#choices"),elNext=$("#next"),elSpeaker=$("#speaker");
+const promiseBox=$("#promiseBox"),promiseInput=$("#promiseInput");
+let typing=false,skipType=false;
+
+function setScene(mode){
+  if(mode==="sleeping"){scene.classList.add("sleeping");imgS.classList.add("show");imgA.classList.remove("show");$("#zzz").style.display="";}
+  else{scene.classList.remove("sleeping");imgA.classList.add("show");imgS.classList.remove("show");$("#zzz").style.display="none";}
+}
+let imgFails=0;
+[imgS,imgA].forEach(im=>{im.addEventListener("error",()=>{if(++imgFails>=1)scene.classList.add("noimg");});});
+
+async function typeText(str){
+  typing=true;skipType=false;
+  elText.innerHTML="";
+  const cur=document.createElement("span");cur.className="cursor";cur.textContent="▍";
+  for(let i=0;i<str.length;i++){
+    if(skipType){elText.textContent=str;break;}
+    elText.textContent=str.slice(0,i+1);
+    elText.appendChild(cur);
+    await sleep(str[i]==="\n"?180:30);
+  }
+  elText.textContent=str;
+  typing=false;
+}
+elText.addEventListener("click",()=>{if(typing)skipType=true;});
+$("#dialog").addEventListener("click",()=>{if(typing)skipType=true;});
+
+function waitNext(){
+  return new Promise(res=>{
+    elNext.style.display="block";
+    const h=()=>{elNext.style.display="none";elNext.removeEventListener("click",h);res();};
+    elNext.addEventListener("click",h);
+  });
+}
+async function say(str){await typeText(str);await waitNext();}
+function ask(options){
+  return new Promise(res=>{
+    elChoices.innerHTML="";
+    options.forEach(o=>{
+      const b=document.createElement("button");
+      b.className="choice";b.textContent=o.label;
+      b.onclick=()=>{elChoices.innerHTML="";res(o);};
+      elChoices.appendChild(b);
+    });
+  });
+}
+function askPromise(){
+  return new Promise(res=>{
+    promiseBox.style.display="flex";
+    promiseInput.value="";
+    const skip=document.createElement("button");
+    skip.className="choice";skip.textContent="（ひみつにする）";
+    elChoices.appendChild(skip);
+    const done=v=>{promiseBox.style.display="none";elChoices.innerHTML="";res(v);};
+    $("#promiseSend").onclick=()=>done(promiseInput.value.trim()||null);
+    promiseInput.onkeydown=e=>{if(e.key==="Enter")done(promiseInput.value.trim()||null);};
+    skip.onclick=()=>done(null);
+  });
+}
+function toast(msg){
+  const t=$("#toast");t.textContent=msg;t.classList.add("show");
+  clearTimeout(t._tm);t._tm=setTimeout(()=>t.classList.remove("show"),1600);
+}
+
+/* shelf */
+const ITEMS=["🪴","📚","🧸","🕯️","🌼","🎐","🧶","🫖","🔔","🪞","🪺","🕊️"];
+function renderShelf(){
+  const n=Math.min(st.naturalWakes,ITEMS.length);
+  $("#shelf").innerHTML=ITEMS.map((e,i)=>'<div class="slot'+(i<n?'':' empty')+'">'+e+'</div>').join("");
+}
+
+/* diary */
+function renderDiary(){
+  const L=$("#diaryList");
+  if(!st.diary.length){L.innerHTML='<p class="dim" style="font-size:.78rem;color:var(--ink-dim)">まだ なにも きいていない。<br>はじめての ゆめを、まってみよう。</p>';return;}
+  L.innerHTML=st.diary.slice().reverse().map(d=>{
+    const dt=new Date(d.t);
+    const ds=dt.getFullYear()+"."+String(dt.getMonth()+1).padStart(2,"0")+"."+String(dt.getDate()).padStart(2,"0")+" "+String(dt.getHours()).padStart(2,"0")+":"+String(dt.getMinutes()).padStart(2,"0");
+    const icon=d.type==="forced"?"💥":"🌙→☀️";
+    const rep=d.report?('<span class="tag">'+d.report+"</span>"):"";
+    return '<div class="dent"><div class="dd">'+icon+" "+ds+rep+'</div><div class="dt">'+d.text+"</div></div>";
+  }).join("");
+}
+
+/* ============ sleeping loop ============ */
+const SLEEP_LINES=["すうすう……","（ちいさな ねいき が きこえる）","（ねがえりを うった）","（くちびるが、すこしだけ うごいた。ゆめを みているみたい）","（まぶたの おくで、めが ゆっくり うごいている）","すぴー……","（かけぶとんが、ゆっくり じょうげ している）"];
+let loopTimer=null,lineTimer=null,tapChain=0,lastTap=0;
+
+function fmtRemain(ms){
+  const s=Math.max(0,Math.ceil(ms/1000));
+  return s>=60?Math.floor(s/60)+"分"+(s%60)+"秒":s+"秒";
+}
+function startSleepLoop(){
+  setScene("sleeping");
+  elSpeaker.textContent="ゆめみ（ねむっている）";
+  $("#tapHint").textContent=st.seenIntro?"":"";
+  let lineIdx=0;
+  const showLine=()=>{elText.textContent=pick(SLEEP_LINES);};
+  showLine();
+  clearInterval(lineTimer);lineTimer=setInterval(showLine,7000);
+  elChoices.innerHTML="";
+  const ear=document.createElement("button");
+  ear.className="choice";ear.textContent="👂 みみを すます";
+  ear.onclick=earListen;
+  elChoices.appendChild(ear);
+  clearInterval(loopTimer);
+  loopTimer=setInterval(()=>{
+    const t=now(),c=st.cycle;
+    const total=c.wakeAt-c.sleepStart,remain=c.wakeAt-t;
+    let depth=clamp01(remain/total);
+    const disp=clamp01(depth*(0.985+0.015*Math.sin(t/1200)));
+    $("#vSleep").textContent=disp.toFixed(2);
+    $("#bSleep").style.width=(disp*100)+"%";
+    $("#sleepSub").textContent=depth>0.66?"ふかい ねむり。ゆめの まっさいちゅう。":depth>0.33?"ねむりが、すこしずつ うすれてきた。":"もうすぐ、しぜんに めが さめそう……（あと "+fmtRemain(remain)+"）";
+    $("#vDream").textContent=c.rank.toFixed(2);
+    $("#bDream").style.width=(c.rank*100)+"%";
+    if(remain<=0){clearInterval(loopTimer);clearInterval(lineTimer);naturalWake();}
+  },250);
+}
+function earListen(){
+  const c=st.cycle;
+  if(c.earsUsed<2){
+    c.earsUsed++;save();
+    typeText("「……"+c.seeds[c.earsUsed-1]+"……むにゃ……」");
+  }else{
+    typeText("すうすう……。（もう、ねいきしか きこえない）");
+  }
+}
+
+/* tap → forced wake */
+scene.addEventListener("click",()=>{
+  if(!st.cycle||st.cycle.phase!=="sleeping")return;
+  const t=now();
+  tapChain=(t-lastTap<900)?tapChain+1:1;
+  lastTap=t;
+  if(tapChain>=8){tapChain=0;forcedWake();return;}
+  if(tapChain>=4){scene.classList.remove("shake1","shake2");void scene.offsetWidth;scene.classList.add("shake2");toast("（ゆさゆさ……）「むにゃ……あと、ちょっとだけ……」");}
+  else if(tapChain>=2){scene.classList.remove("shake1","shake2");void scene.offsetWidth;scene.classList.add("shake1");toast("ん……むにゃ……");}
+  else{toast("（やわらかい ねいき）");}
+});
+
+/* ============ wake sequences ============ */
+function stopLoops(){clearInterval(loopTimer);clearInterval(lineTimer);}
+async function forcedWake(){
+  stopLoops();
+  st.forcedWakes++;
+  st.diary.push({t:now(),type:"forced",text:"（おこされて、きえてしまった夢）",report:null});
+  st.cycle.phase="awake";save();
+  setScene("awake");
+  elSpeaker.textContent="ゆめみ";
+  elChoices.innerHTML="";
+  $("#vSleep").textContent="0.00";$("#bSleep").style.width="0%";
+  await say("……ふえっ？！");
+  await say("あ……おはよ……。");
+  await say("ごめんね。なんの夢を みてたか……わすれちゃった。");
+  await say("むりやり おこされると、ゆめは、にげちゃうんだ。");
+  await say("……つぎは、しぜんに おきるまで まっててくれると、うれしいな。");
+  await say("もう すこしだけ、ねるね……。");
+  st.cycle=newCycle(0,{short:true,rank:Math.max(0.15,st.cycle.rank*0.5)});
+  save();renderShelf();startSleepLoop();
+}
+async function naturalWake(){
+  stopLoops();
+  const c=st.cycle;
+  c.phase="awake";st.naturalWakes++;save();
+  setScene("awake");
+  elSpeaker.textContent="ゆめみ";
+  elChoices.innerHTML="";
+  $("#vSleep").textContent="0.00";$("#bSleep").style.width="0%";
+  renderShelf();
+  await say("ん……ふああ……。");
+  if(st.naturalWakes===1)await say("……あ。おはよ。きみが まっててくれたんだ。");
+  else await say("おはよ。きょうも、きてくれたんだ。");
+  if(c.missed)await say("……ほんとはね、いちど おきたんだけど。きみが いなかったから、もういっかい ねてたの。");
+  await typeText("ねえ。わたしが ねている あいだ、なにを してたの？");
+  const rep=await ask(REPORTS.map(r=>({label:r.label,value:r})));
+  st.lastReport=rep.value.key;
+  await say(rep.value.reply);
+  const dream=genDream(c.rank,c.fragsN,c.seeds,rep.value.key,st.promiseBonus);
+  st.promiseBonus=false;
+  st.diary.push({t:now(),type:"natural",text:dream,report:rep.value.label});
+  if(st.diary.length>100)st.diary=st.diary.slice(-100);
+  save();
+  await say("わたしはね、こんな夢を みたよ。");
+  await say(dream);
+  if(st.lastPromise){
+    await typeText("そういえば。このまえ「"+st.lastPromise+"」って いってたよね。……できた？");
+    const pr=await ask([{label:"できたよ！",v:"done"},{label:"まだ とちゅう",v:"mid"},{label:"わすれてた……",v:"forgot"}]);
+    if(pr.v==="done"){st.promiseBonus=true;await say("えへへ。じゃあ、つぎの ゆめは、きっと いいゆめだ。");}
+    else if(pr.v==="mid")await say("うん。とちゅうって、いちばん おもしろいとこだもんね。");
+    else await say("いいよ。わすれたことも、いつか ゆめの たねに なるから。");
+  }
+  await typeText("つぎに あうまでに、きみは なにを したい？");
+  const p=await askPromise();
+  st.lastPromise=p;save();
+  if(p)await say("「"+p+"」だね。おぼえておく。……ゆめのなかで、おうえんしてるね。");
+  else await say("ひみつかあ。……うん、それも いいね。");
+  await say("きいてくれて、ありがと。");
+  await say("……ふあ。ごめん、もう ねむくて。");
+  await say("おやすみ。つぎの夢で、きみのこと さがしてみるね。");
+  st.cycle=newCycle(0,{rank:0.18});
+  save();startSleepLoop();
+}
+
+/* ============ boot ============ */
+function makeStars(){
+  const holder=$("#stars");
+  for(let i=0;i<60;i++){
+    const s=document.createElement("div");s.className="star";
+    s.style.left=Math.random()*100+"%";
+    s.style.top=Math.random()*55+"%";
+    s.style.animationDelay=(Math.random()*3)+"s";
+    s.style.opacity=Math.random()*0.6+0.1;
+    holder.appendChild(s);
+  }
+}
+async function boot(){
+  makeStars();
+  st=load();
+  st.visits++;
+  const t=now();
+  const absence=Math.max(0,t-(st.lastSeen||t));
+  if(!st.cycle){
+    st.cycle=newCycle(absence);
+  }else if(st.cycle.phase==="awake"){
+    st.cycle=newCycle(absence);
+  }else{
+    if(t>=st.cycle.wakeAt+10*60*1000){
+      st.cycle=newCycle(absence,{missed:true});
+    }else if(t>=st.cycle.wakeAt){
+      st.cycle.wakeAt=t+ri(5,15)*1000;
+    }
+  }
+  st.lastSeen=t;save();
+  renderShelf();renderDiary();
+  if(!st.seenIntro){
+    st.seenIntro=true;save();
+    setScene("sleeping");
+    elSpeaker.textContent="？？？";
+    await say("しーっ。……ねむってる。");
+    await say("この子は、ゆめみ。よく ねて、よく ゆめを みる子。");
+    await say("しぜんに おきるまで、そっと まってあげて。\nまっただけ、いい夢の はなしが きける。");
+    await say("（……タップれんだで おこすことも できる。でも それは、さいごの しゅだん）");
+  }
+  startSleepLoop();
+}
+/* keep lastSeen fresh */
+setInterval(()=>{if(st){st.lastSeen=now();save();}},15000);
+document.addEventListener("visibilitychange",()=>{if(st){st.lastSeen=now();save();}});
+window.addEventListener("beforeunload",()=>{if(st){st.lastSeen=now();save();}});
+
+/* modals & share */
+document.querySelectorAll("[data-close]").forEach(b=>b.onclick=()=>$("#"+b.dataset.close).classList.remove("open"));
+$("#btnDiary").onclick=()=>{renderDiary();$("#mDiary").classList.add("open");};
+$("#btnInfo").onclick=()=>$("#mInfo").classList.add("open");
+document.querySelectorAll(".modal").forEach(m=>m.addEventListener("click",e=>{if(e.target===m)m.classList.remove("open");}));
+$("#btnShare").onclick=e=>{
+  e.preventDefault();
+  const txt="夢見る少女は眠れない ── 起こさずに、待てますか。ねむりを Boolean じゃなく Float で愛でる、しずかな放置ゲーム。 #全人類UX改善計画";
+  window.open("https://twitter.com/intent/tweet?text="+encodeURIComponent(txt)+"&url="+encodeURIComponent("https://osakenpiro.github.io/yumemi-shoujo/"),"_blank");
+};
+
+boot();
+</script>
+</body>
+</html>
