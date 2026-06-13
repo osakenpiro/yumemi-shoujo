@@ -8,9 +8,7 @@
 <meta property="og:title" content="夢見る少女は眠れない">
 <meta property="og:description" content="起動しても、少女は寝ている。自然に起きるまで待つ——ねむりをFloatで愛でる、しずかな放置ゲーム。">
 <meta property="og:url" content="https://osakenpiro.github.io/yumemi-shoujo/">
-<meta property="og:image" content="https://osakenpiro.github.io/yumemi-shoujo/og.jpg"
-  <meta property="og:image:width" content="1200">
-  <meta property="og:image:height" content="630">>
+<meta property="og:image" content="https://osakenpiro.github.io/yumemi-shoujo/img/sleep.jpg">
 <meta property="og:type" content="website">
 <meta name="twitter:card" content="summary_large_image">
 <style>
@@ -23,6 +21,8 @@
   --ink-dim:#9a94a8;
   --panel:rgba(14,17,34,.82);
   --line:rgba(212,168,83,.35);
+  --trust-col:#7ec8e3;
+  --weather-col:#b8d4e8;
 }
 *{margin:0;padding:0;box-sizing:border-box}
 html,body{height:100%}
@@ -65,16 +65,28 @@ h1 small{display:block;font-size:.62rem;color:var(--ink-dim);letter-spacing:.28e
 #tapHint{position:absolute;left:0;right:0;bottom:8px;text-align:center;font-size:.68rem;color:rgba(232,226,212,.5);pointer-events:none;text-shadow:0 1px 4px #000}
 #zzz{position:absolute;top:10px;right:14px;font-size:1.3rem;opacity:.85;animation:zfloat 3s ease-in-out infinite;text-shadow:0 0 10px rgba(212,168,83,.5)}
 @keyframes zfloat{0%,100%{transform:translateY(0);opacity:.5}50%{transform:translateY(-6px);opacity:.95}}
+/* stork overlay */
+#storkOverlay{position:absolute;inset:0;background:rgba(255,255,255,0);pointer-events:none;
+  display:flex;align-items:center;justify-content:center;z-index:10;font-size:5rem;
+  opacity:0;transition:opacity 1.2s ease}
+#storkOverlay.show{opacity:1;animation:storkPulse 2s ease-in-out infinite}
+@keyframes storkPulse{0%,100%{transform:scale(1)}50%{transform:scale(1.08)}}
+/* weather badge */
+#weatherBadge{position:absolute;top:10px;left:14px;font-size:.72rem;color:rgba(232,226,212,.75);
+  background:rgba(4,6,18,.55);border:1px solid rgba(212,168,83,.2);border-radius:8px;
+  padding:3px 8px;pointer-events:none;text-shadow:0 1px 3px #000;letter-spacing:.08em}
 
 /* meters */
 #meters{display:flex;gap:10px;flex-wrap:wrap}
-.meter{flex:1;min-width:200px;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:9px 12px}
+.meter{flex:1;min-width:180px;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:9px 12px}
 .meter .lbl{display:flex;justify-content:space-between;font-size:.72rem;color:var(--ink-dim);letter-spacing:.14em;margin-bottom:6px}
 .meter .lbl b{color:var(--gold);font-family:"Consolas","Courier New",monospace;font-size:.84rem;letter-spacing:.05em}
+.meter.trust-meter .lbl b{color:var(--trust-col)}
 .bar{height:7px;border-radius:4px;background:rgba(255,255,255,.07);overflow:hidden}
 .bar i{display:block;height:100%;width:0%;border-radius:4px;
   background:linear-gradient(90deg,var(--gold-dim),var(--gold) 80%,#f4d489);
   box-shadow:0 0 8px rgba(212,168,83,.55);transition:width .45s ease}
+.trust-meter .bar i{background:linear-gradient(90deg,#4a9ab8,var(--trust-col) 80%,#c4e8f4);box-shadow:0 0 8px rgba(126,200,227,.55)}
 .meter .sub{font-size:.62rem;color:var(--ink-dim);margin-top:5px;letter-spacing:.06em}
 
 /* shelf */
@@ -105,6 +117,7 @@ h1 small{display:block;font-size:.62rem;color:var(--ink-dim);letter-spacing:.28e
 footer{margin-top:6px;text-align:center;font-size:.66rem;color:var(--ink-dim);line-height:2}
 footer a{color:var(--gold-dim);text-decoration:none}
 footer a:hover{color:var(--gold)}
+#genBadge{font-size:.6rem;color:var(--ink-dim);margin-left:6px;opacity:.65}
 
 /* modal */
 .modal{position:fixed;inset:0;background:rgba(4,5,12,.8);display:none;align-items:center;justify-content:center;z-index:50;padding:16px}
@@ -120,6 +133,12 @@ footer a:hover{color:var(--gold)}
 .dent .dd{font-size:.64rem;color:var(--ink-dim);letter-spacing:.1em;margin-bottom:4px}
 .dent .dt{font-size:.82rem;line-height:1.9;white-space:pre-wrap}
 .dent .tag{display:inline-block;font-size:.6rem;color:var(--gold-dim);border:1px solid rgba(212,168,83,.25);border-radius:6px;padding:1px 6px;margin-left:6px}
+/* trust tag color in diary */
+.dent .trust-tag{color:var(--trust-col);border-color:rgba(126,200,227,.3)}
+
+/* stork / tensei modal special */
+#mTensei .mbox{border-color:rgba(126,200,227,.55);box-shadow:0 10px 60px rgba(126,200,227,.15),0 0 80px rgba(0,0,0,.7)}
+#mTensei h2{color:var(--trust-col);letter-spacing:.22em}
 
 #toast{position:fixed;left:50%;bottom:88px;transform:translateX(-50%);background:rgba(20,24,46,.95);border:1px solid var(--line);
   color:var(--ink);font-size:.8rem;padding:8px 16px;border-radius:20px;opacity:0;transition:opacity .3s;pointer-events:none;z-index:60;white-space:nowrap}
@@ -128,7 +147,7 @@ footer a:hover{color:var(--gold)}
 @media(max-width:480px){
   h1{font-size:.95rem}
   #text{font-size:.88rem}
-  .meter{min-width:46%}
+  .meter{min-width:42%}
 }
 </style>
 </head>
@@ -150,6 +169,8 @@ footer a:hover{color:var(--gold)}
     <div class="vig"></div>
     <div id="zzz">💤</div>
     <div id="tapHint"></div>
+    <div id="storkOverlay">🕊️</div>
+    <div id="weatherBadge"></div>
   </div>
 
   <div id="meters">
@@ -161,7 +182,12 @@ footer a:hover{color:var(--gold)}
     <div class="meter">
       <div class="lbl"><span>ゆめのこさ</span><b id="vDream">0.00</b></div>
       <div class="bar"><i id="bDream"></i></div>
-      <div class="sub">はなれていた じかんが、ゆめを こく する。</div>
+      <div class="sub" id="dreamSub">はなれていた じかんが、ゆめを こく する。</div>
+    </div>
+    <div class="meter trust-meter">
+      <div class="lbl"><span>しんらい</span><b id="vTrust">0.00</b></div>
+      <div class="bar"><i id="bTrust"></i></div>
+      <div class="sub" id="trustSub">約束を まもると、すこしずつ つよくなる。</div>
     </div>
   </div>
 
@@ -183,6 +209,7 @@ footer a:hover{color:var(--gold)}
     <a href="#" id="btnShare">𝕏 でシェア</a> ・
     <a href="https://osakenpiro.github.io/" target="_blank" rel="noopener">osakenpiro</a> ─ #全人類UX改善計画<br>
     ねむりは ON/OFF じゃなく 0.0〜1.0 ── Boolean → Float
+    <span id="genBadge"></span>
   </footer>
 </div>
 
@@ -199,10 +226,20 @@ footer a:hover{color:var(--gold)}
      ② ひらいても、少女は ねむっています。<b>自然に起きるまで待つ</b>のが、いちばんの遊びかたです。</p>
   <p>タップ連打で おこすことも できます。でも、むりやり おこされた少女は、見ていた夢を わすれてしまいます。</p>
   <p>自然に目ざめた少女は、夢の話をしてくれます。その夢は、あなたが「ねている間に何をしていたか」で、すこしだけ 変わります。気のせいかもしれない くらい、すこしだけ。</p>
+  <p><b>v2 新機能：</b></p>
+  <p>🤝 <b>しんらい（信頼度 Float）</b> ── 約束をまもるたびに少しずつ上がる。高いほど、夢に深みが増す。嘘をついたり強制的に起こすと下がる。</p>
+  <p>🕊️ <b>コウノトリ</b> ── しぜんに起きた朝がじゅうぶんに積み重なると、コウノトリがやってくる。少女は「転生」して、また夢を積み重ねていく。</p>
+  <p>🌤️ <b>天気</b> ── いまいる場所の空模様が、少女の夢にひそかに影響する。</p>
   <p class="dim">ねむりを ON/OFF の Boolean ではなく、0.0〜1.0 の Float として あつかう——osakenpiro の全プロジェクトを つらぬく設計思想（Boolean → Float / BeeF）の、いちばん しずかな実装です。</p>
-  <p class="dim">このさき：嘘を見抜く少女（信頼度Float）／コウノトリ／天気連動の夢。ぜんぶ、まだ 夢のなか。</p>
   <p class="dim">画風『ひとあかり』── muted な画面に、ひとつの明かり。</p>
   <button class="mclose" data-close="mInfo">とじる</button>
+</div></div>
+
+<!-- 転生モーダル -->
+<div class="modal" id="mTensei"><div class="mbox">
+  <h2>🕊️ コウノトリが やってきた</h2>
+  <p id="tenseiText">ゆめみが、つぎの夢へ旅立つ。</p>
+  <button class="mclose" id="tenseiConfirm">旅立つ</button>
 </div></div>
 
 <div id="toast"></div>
@@ -220,14 +257,160 @@ const clamp01=x=>Math.max(0,Math.min(1,x));
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
 function pick(arr){return arr[Math.floor(Math.random()*arr.length)];}
 
-/* ============ state ============ */
+/* ============ state (v2 — backward compatible) ============ */
 const KEY="yumemi-shoujo-v1";
+const KEY_V2="yumemi-shoujo-v2";
 let st=null;
-function defaults(){return {v:1,created:now(),lastSeen:now(),cycle:null,lastReport:null,lastPromise:null,promiseBonus:false,diary:[],naturalWakes:0,forcedWakes:0,visits:0,seenIntro:false};}
-function load(){try{const r=localStorage.getItem(KEY);return r?Object.assign(defaults(),JSON.parse(r)):defaults();}catch(e){return defaults();}}
-function save(){try{localStorage.setItem(KEY,JSON.stringify(st));}catch(e){}}
 
-/* ============ dream dictionary (カテゴリプール方式) ============ */
+function defaults(){
+  return {
+    // v1 fields (preserved)
+    v:2,
+    created:now(),lastSeen:now(),
+    cycle:null,lastReport:null,lastPromise:null,promiseBonus:false,
+    diary:[],naturalWakes:0,forcedWakes:0,visits:0,seenIntro:false,
+    // v2 fields (new)
+    trust:0.0,          // 信頼度 Float 0.0~1.0
+    generation:1,       // 転生回数
+    totalNaturalWakes:0,// 転生込みの累計しぜん覚醒
+    storkPending:false,  // コウノトリ演出フラグ
+    weatherCache:null,  // {code,label,emoji,ts}
+    lieCount:0,         // trust下げ系カウンタ
+  };
+}
+
+/* v1→v2 migration: load v1 state and promote if v2 not present */
+function load(){
+  try{
+    // Try v2 key first
+    const r2=localStorage.getItem(KEY_V2);
+    if(r2){
+      const parsed=JSON.parse(r2);
+      return Object.assign(defaults(),parsed);
+    }
+    // Try v1 key (legacy migration)
+    const r1=localStorage.getItem(KEY);
+    if(r1){
+      const parsed=JSON.parse(r1);
+      const migrated=Object.assign(defaults(),parsed);
+      migrated.v=2;
+      // Infer trust from naturalWakes if migrating
+      migrated.trust=clamp01(parsed.naturalWakes/20);
+      migrated.generation=1;
+      migrated.totalNaturalWakes=parsed.naturalWakes||0;
+      return migrated;
+    }
+    return defaults();
+  }catch(e){return defaults();}
+}
+function save(){
+  try{
+    localStorage.setItem(KEY_V2,JSON.stringify(st));
+    // keep v1 key alive for backward compat read (soft mirror, lightweight)
+    const v1mirror={v:1,created:st.created,lastSeen:st.lastSeen,cycle:st.cycle,
+      lastReport:st.lastReport,lastPromise:st.lastPromise,promiseBonus:st.promiseBonus,
+      diary:st.diary,naturalWakes:st.naturalWakes,forcedWakes:st.forcedWakes,
+      visits:st.visits,seenIntro:st.seenIntro};
+    localStorage.setItem(KEY,JSON.stringify(v1mirror));
+  }catch(e){}
+}
+
+/* ============ STORK threshold ============ */
+/* コウノトリは naturalWakes が 12 を超え、かつ前転生から未カウントの場合 */
+const STORK_THRESHOLD=12;
+
+/* ============ TRUST mechanics ============ */
+/* trust上昇: 約束kept(+0.08)/自然覚醒(+0.02)/耳を澄ます(+0.01)
+   trust下降: 約束broke(-0.06)/約束忘(-0.03)/強制覚醒(-0.04)
+   高信頼でdream frags+1, 夢のセリフが柔らかく変化 */
+function trustUp(delta){st.trust=clamp01(st.trust+delta);save();}
+function trustDown(delta){st.trust=clamp01(st.trust-delta);save();}
+
+function trustLabel(){
+  if(st.trust>=0.85)return "しんじてる";
+  if(st.trust>=0.6)return "すこしずつ、わかってきた";
+  if(st.trust>=0.35)return "……まだ、よくわからない";
+  if(st.trust>=0.15)return "まだかいていない";
+  return "しらないひと";
+}
+function trustSuffix(){
+  // dialog suffix that varies with trust
+  if(st.trust>=0.75)return "……きみのこと、すきだよ。";
+  if(st.trust>=0.45)return "……また、きてね。";
+  return "";
+}
+
+/* ============ weather ============ */
+/* WMO weather codes → label/emoji */
+const WMO={
+  0:{l:"晴れ",e:"☀️"},
+  1:{l:"おおむね晴れ",e:"🌤️"},2:{l:"くもり",e:"⛅"},3:{l:"くもり",e:"☁️"},
+  45:{l:"霧",e:"🌫️"},48:{l:"霧",e:"🌫️"},
+  51:{l:"小雨",e:"🌦️"},53:{l:"雨",e:"🌦️"},55:{l:"雨",e:"🌧️"},
+  61:{l:"小雨",e:"🌦️"},63:{l:"雨",e:"🌧️"},65:{l:"大雨",e:"🌧️"},
+  71:{l:"小雪",e:"🌨️"},73:{l:"雪",e:"❄️"},75:{l:"大雪",e:"❄️"},
+  80:{l:"にわか雨",e:"🌦️"},81:{l:"にわか雨",e:"🌧️"},82:{l:"激しい雨",e:"⛈️"},
+  95:{l:"雷雨",e:"⛈️"},96:{l:"雷雨",e:"⛈️"},99:{l:"激しい雷雨",e:"⛈️"},
+};
+function wmoInfo(code){
+  return WMO[code]||{l:"不明",e:"🌡️"};
+}
+/* weatherCode → dream category bias (1.4x bonus) */
+function weatherCats(code){
+  if(code===0||code===1)return ["ひかり","そら","はな"];
+  if(code===2||code===3)return ["よる","ほし","とびら"];
+  if(code>=45&&code<=48)return ["もり","とびら","ことば"];
+  if(code>=51&&code<=65)return ["うみ","はな","おんがく"];
+  if(code>=71&&code<=75)return ["ゆき","へや","ひかり"];
+  if(code>=80&&code<=82)return ["うみ","まつり","きかい"];
+  if(code>=95)return ["よる","きかい","とびら"];
+  return [];
+}
+let weatherCatsActive=[];
+let weatherEmoji="";
+
+const WEATHER_TTL=30*60*1000; // 30min cache
+async function fetchWeather(){
+  if(st.weatherCache&&now()-st.weatherCache.ts<WEATHER_TTL){
+    applyWeather(st.weatherCache);
+    return;
+  }
+  try{
+    await new Promise((res,rej)=>{
+      navigator.geolocation.getCurrentPosition(res,rej,{timeout:4000,maximumAge:600000});
+    }).then(async pos=>{
+      const {latitude:lat,longitude:lon}=pos.coords;
+      const url=`https://api.open-meteo.com/v1/forecast?latitude=${lat.toFixed(2)}&longitude=${lon.toFixed(2)}&current=weather_code&timezone=auto`;
+      const resp=await fetch(url,{signal:AbortSignal.timeout(5000)});
+      if(!resp.ok)return;
+      const data=await resp.json();
+      const code=data.current?.weather_code??-1;
+      const info=wmoInfo(code);
+      const cache={code,label:info.l,emoji:info.e,ts:now()};
+      st.weatherCache=cache;save();
+      applyWeather(cache);
+    });
+  }catch(e){
+    // silently fail — weather is optional flavor
+    applyWeather(null);
+  }
+}
+function applyWeather(cache){
+  if(!cache||cache.code<0){
+    $("#weatherBadge").textContent="";
+    weatherCatsActive=[];
+    weatherEmoji="";
+    return;
+  }
+  weatherCatsActive=weatherCats(cache.code);
+  weatherEmoji=cache.emoji;
+  $("#weatherBadge").textContent=cache.emoji+" "+cache.label;
+  // update dream sub with weather hint
+  const sub=weatherCatsActive.length?`${cache.emoji}の空が、夢にひそかに影響している……`:`${cache.emoji}の空。`;
+  $("#dreamSub").textContent=sub;
+}
+
+/* ============ dream dictionary ============ */
 const NOUNS={
   "そら":["雲のかいだん","さかさまの虹","ひこうき雲のリボン","あさやけの海","風のかたまり","そらいろのドア"],
   "ほし":["ちいさな星","ながれ星のしっぽ","星のすなつぶ","三日月のふね","とおい銀河","星座のあみもの"],
@@ -246,7 +429,8 @@ const NOUNS={
   "はな":["たんぽぽのわたげ","よるにさく花","はなびらの川","ひまわりのめいろ","おしばなの手帳","あじさいのかさ"],
   "まつり":["とおくの花火","ちょうちんの列","りんごあめ","きんぎょすくいの金魚","おめんやさん","よみせのざわめき"],
   "とびら":["しらないドア","ちいさなカギ","あかずの間","ノックの音","かぎあなのむこう","まわりつづけるドアノブ"],
-  "よる":["よるのプール","ねしずまった町","とけいの音だけの部屋","カーテンのすきま","夜きしゃ","ねむれない時計"]
+  "よる":["よるのプール","ねしずまった町","とけいの音だけの部屋","カーテンのすきま","夜きしゃ","ねむれない時計"],
+  "コウノトリ":["しろくて大きなとり","しずかなはね","たびするつがい","青い空のシルエット","そらからのおとずれ","むこうがわのおしらせ"]
 };
 const PATTERNS=[
   "{a}が、{b}みたいに ひかってた",
@@ -265,9 +449,15 @@ const PATTERNS=[
   "{a}に みずを あげた"
 ];
 const CONNECTORS=["そしたらね、","きがつくと、","いつのまにか、","なぜか そこで、","そのつぎはね、","でも ほんとうはね、"];
-const EMOTIONS=["なつかしかった","うれしかった","すこし さびしかった","ふしぎだった","むねが ぽかぽかした","ちょっとだけ こわかった。でも、へいきだった"];
 
-/* 自己申告(案A) → カテゴリ重みづけ 1.4x */
+/* 感情 — trustで変化 */
+function pickEmotion(){
+  const hiTrust=["なつかしかった。ずっと、きみのこと さがしてたような きがする","うれしかった。きみが いるから、ゆめに いけるのかも","あったかかった。ひかりの なかに、だれかが いた","むねが ぽかぽかした。おこされなくて、よかった"];
+  const loTrust=["なつかしかった","ふしぎだった","すこし さびしかった","むねが ぽかぽかした","ちょっとだけ こわかった。でも、へいきだった"];
+  return st.trust>=0.6?pick(hiTrust):pick(loTrust);
+}
+
+/* 自己申告 */
 const REPORTS=[
   {key:"work", label:"はたらいてた", cats:["きかい","まち"], reply:"そっか。おつかれさま。……えらいね。"},
   {key:"play", label:"あそんでた", cats:["まつり","おかし"], reply:"いいなあ。こんど、なにして あそんだか おしえてね。"},
@@ -276,6 +466,7 @@ const REPORTS=[
   {key:"slept",label:"ずっと ねてた", cats:["へや","よる"], reply:"ふふ、おそろいだね。"},
   {key:"secret",label:"ひみつ", cats:["とびら","ほし"], reply:"ひみつかあ。……じゃあ、ゆめのほうが おしゃべりだね。"}
 ];
+
 function seasonCats(){
   const m=new Date().getMonth()+1, h=new Date().getHours(), d=new Date().getDay();
   const c=[];
@@ -290,10 +481,13 @@ function seasonCats(){
 }
 function weightedCat(biasCats){
   const seas=seasonCats();
+  const wx=weatherCatsActive;
   const entries=Object.keys(NOUNS).map(c=>{
     let w=1.0;
-    if(biasCats.includes(c))w=1.4;       // 自己申告バイアス
-    else if(seas.includes(c))w=1.2;      // 季節・時間スパイス
+    if(biasCats.includes(c))w*=1.4;
+    if(seas.includes(c))w*=1.2;
+    if(wx.includes(c))w*=1.35;         // 天気バイアス
+    if(c==="コウノトリ")w*=0.05;       // 滅多に出ない (stork事前除外)
     return [c,w];
   });
   const tot=entries.reduce((s,e)=>s+e[1],0);
@@ -301,15 +495,40 @@ function weightedCat(biasCats){
   for(const [c,w] of entries){ r-=w; if(r<=0)return c; }
   return entries[entries.length-1][0];
 }
+
+/* 信頼度矛盾チェック: 「センサー矛盾」=前回申告と今回の時間帯が不整合 */
+function checkTrustContradiction(reportKey){
+  // 例: 前回「そとにいた」なのに真夜中 → 矛盾の可能性
+  const h=new Date().getHours();
+  if(st.lastReport==="out"&&(h>=1&&h<=6)&&reportKey==="out"){
+    return "……また そとにいたの？ こんな じかんに。ほんとに？";
+  }
+  if(st.lastReport==="slept"&&reportKey==="slept"&&st.forcedWakes===0){
+    return "……ずっと ねてたんだ。わたしも ねてたのに、おそろいすぎて、すこし うたがっちゃった。";
+  }
+  return null;
+}
+
 function genDream(rank,fragsN,seeds,reportKey,bonus){
   const rep=REPORTS.find(r=>r.key===reportKey);
   const bias=rep?rep.cats:[];
-  let n=fragsN+(bonus?1:0); n=Math.max(2,Math.min(5,n));
+  // 信頼度が高いほど+1断片ボーナス
+  const trustBonus=st.trust>=0.7?1:0;
+  let n=fragsN+(bonus?1:0)+trustBonus; n=Math.max(2,Math.min(6,n));
   const frags=[];
   const usedNouns=new Set();
-  for(let i=0;i<n;i++){
+
+  // コウノトリ転生直前: 夢にコウノトリを強制混入
+  const storkForeshadow=st.naturalWakes>=STORK_THRESHOLD-2&&st.naturalWakes<STORK_THRESHOLD;
+  if(storkForeshadow){
+    const storkNoun=pick(NOUNS["コウノトリ"]);
+    frags.push(`どこかで ${storkNoun}が、遠くを とんでいた`);
+    usedNouns.add(storkNoun);
+  }
+
+  for(let i=frags.length;i<n;i++){
     let a;
-    if(i<seeds.length){ a=seeds[i]; }            // 寝言の種を必ず織りこむ
+    if(i-frags.length<seeds.length){ a=seeds[i-frags.length]; }
     else{
       const cat=weightedCat(bias);
       a=pick(NOUNS[cat]);
@@ -325,7 +544,11 @@ function genDream(rank,fragsN,seeds,reportKey,bonus){
   let txt="えっとね……。"+frags[0]+"。";
   for(let i=1;i<frags.length;i++){ txt+="\n"+pick(CONNECTORS)+frags[i]+"。"; }
   if(reportKey==="slept"&&Math.random()<0.5){ txt+="\nゆめのなかでも、わたし、ねてたみたい。"; }
-  txt+="\nめが さめたら、"+pick(EMOTIONS)+"。";
+  txt+="\nめが さめたら、"+pickEmotion()+"。";
+  // 天気フレーバー
+  if(weatherEmoji&&Math.random()<0.4){
+    txt+="\nそとは "+weatherEmoji+" だったよ、ゆめのなかでも。";
+  }
   return txt;
 }
 function pickSeeds(){
@@ -341,11 +564,61 @@ function newCycle(absenceMs,opt){
   if(opt.rank!==undefined)rank=opt.rank;
   else if(absenceMs<60*1000)rank=0.3;
   else rank=clamp01(absenceMs/(8*HOUR))*0.85+0.15;
-  const waitSec=(opt.short?rnd(40,90):(50+rank*130+rnd(0,30)))*TSCALE;
+  // 信頼度が高いと少し長く眠る（より濃い夢）
+  const trustLenBonus=st.trust*20; // 最大+20s
+  const waitSec=((opt.short?rnd(40,90):(50+rank*130+rnd(0,30)))+trustLenBonus)*TSCALE;
   const t=now();
   return {phase:"sleeping",sleepStart:t,wakeAt:t+waitSec*1000,rank:rank,
           fragsN:Math.max(2,Math.min(5,2+Math.floor(rank*3.001))),
           seeds:pickSeeds(),missed:!!opt.missed,earsUsed:0};
+}
+
+/* ============ STORK / 転生 ============ */
+function checkStork(){
+  return st.naturalWakes>=STORK_THRESHOLD&&!st.storkPending;
+}
+function triggerStorkModal(){
+  st.storkPending=true;save();
+  const gen=st.generation;
+  const trust=st.trust.toFixed(2);
+  $("#tenseiText").textContent=
+    `${gen}まわ目の夢が おわった。\nゆめみは、${st.naturalWakes}かい、しぜんに めをさました。\nしんらい ${trust} を もって、つぎの旅へ。\n\n転生すると、へやのものは きえる。でも、しんらいと、きみとの やくそくは、のこる。`;
+  $("#mTensei").classList.add("open");
+}
+function doTensei(){
+  $("#mTensei").classList.remove("open");
+  // 転生: trust引継ぎ(+0.1ボーナス), generation++, naturalWakes reset
+  const trustCarry=clamp01(st.trust+0.10);
+  st.trust=trustCarry;
+  st.generation++;
+  st.totalNaturalWakes+=st.naturalWakes;
+  st.naturalWakes=0;
+  st.forcedWakes=0;
+  st.storkPending=false;
+  st.diary=[]; // 日記リセット(転生後は新章)
+  st.cycle=newCycle(0,{rank:0.3});
+  st.lastPromise=null;
+  save();
+  renderShelf();renderTrustMeter();
+  startStorkSequence();
+}
+
+async function startStorkSequence(){
+  stopLoops();
+  const ov=$("#storkOverlay");
+  ov.classList.add("show");
+  setScene("sleeping");
+  elSpeaker.textContent="ゆめみ";
+  elChoices.innerHTML="";
+  await sleep(800);
+  await say("……コウノトリが、きた。");
+  await say("むこうで、あたらしい夢が まってるって。");
+  await say("こわくないよ。……きみが、また きてくれるから。");
+  await say("おやすみ。こんどは、もっと いい夢を みるからね。");
+  await sleep(600);
+  ov.classList.remove("show");
+  st.cycle=newCycle(0);save();
+  startSleepLoop();
 }
 
 /* ============ presentation ============ */
@@ -414,11 +687,21 @@ function toast(msg){
   clearTimeout(t._tm);t._tm=setTimeout(()=>t.classList.remove("show"),1600);
 }
 
+/* trust meter render */
+function renderTrustMeter(){
+  const v=st.trust;
+  $("#vTrust").textContent=v.toFixed(2);
+  $("#bTrust").style.width=(v*100)+"%";
+  $("#trustSub").textContent=trustLabel();
+}
+
 /* shelf */
 const ITEMS=["🪴","📚","🧸","🕯️","🌼","🎐","🧶","🫖","🔔","🪞","🪺","🕊️"];
 function renderShelf(){
   const n=Math.min(st.naturalWakes,ITEMS.length);
+  const genNote=st.generation>1?` （第${st.generation}章）`:"";
   $("#shelf").innerHTML=ITEMS.map((e,i)=>'<div class="slot'+(i<n?'':' empty')+'">'+e+'</div>').join("");
+  $("#shelfNote").textContent="しぜんに おきられた あさ の かず だけ、へやに ものが ふえる"+genNote;
 }
 
 /* diary */
@@ -430,12 +713,28 @@ function renderDiary(){
     const ds=dt.getFullYear()+"."+String(dt.getMonth()+1).padStart(2,"0")+"."+String(dt.getDate()).padStart(2,"0")+" "+String(dt.getHours()).padStart(2,"0")+":"+String(dt.getMinutes()).padStart(2,"0");
     const icon=d.type==="forced"?"💥":"🌙→☀️";
     const rep=d.report?('<span class="tag">'+d.report+"</span>"):"";
-    return '<div class="dent"><div class="dd">'+icon+" "+ds+rep+'</div><div class="dt">'+d.text+"</div></div>";
+    const tr=d.trust!==undefined?('<span class="tag trust-tag">しんらい'+d.trust.toFixed(2)+"</span>"):"";
+    return '<div class="dent"><div class="dd">'+icon+" "+ds+rep+tr+'</div><div class="dt">'+d.text+"</div></div>";
   }).join("");
 }
 
 /* ============ sleeping loop ============ */
-const SLEEP_LINES=["すうすう……","（ちいさな ねいき が きこえる）","（ねがえりを うった）","（くちびるが、すこしだけ うごいた。ゆめを みているみたい）","（まぶたの おくで、めが ゆっくり うごいている）","すぴー……","（かけぶとんが、ゆっくり じょうげ している）"];
+const SLEEP_LINES=[
+  "すうすう……",
+  "（ちいさな ねいき が きこえる）",
+  "（ねがえりを うった）",
+  "（くちびるが、すこしだけ うごいた。ゆめを みているみたい）",
+  "（まぶたの おくで、めが ゆっくり うごいている）",
+  "すぴー……",
+  "（かけぶとんが、ゆっくり じょうげ している）"
+];
+/* 高信頼の追加睡眠セリフ */
+const SLEEP_LINES_TRUST=[
+  "……きみが まってくれてる。しってる……",
+  "（くちびるが、なにか を つぶやいた。きみの なまえ、だったかな）",
+  "（ほっぺが、すこし あかい。いい夢を みているみたい）"
+];
+
 let loopTimer=null,lineTimer=null,tapChain=0,lastTap=0;
 
 function fmtRemain(ms){
@@ -445,9 +744,11 @@ function fmtRemain(ms){
 function startSleepLoop(){
   setScene("sleeping");
   elSpeaker.textContent="ゆめみ（ねむっている）";
-  $("#tapHint").textContent=st.seenIntro?"":"";
-  let lineIdx=0;
-  const showLine=()=>{elText.textContent=pick(SLEEP_LINES);};
+  $("#tapHint").textContent="";
+  const allLines=st.trust>=0.5
+    ?[...SLEEP_LINES,...SLEEP_LINES_TRUST]
+    :SLEEP_LINES;
+  const showLine=()=>{elText.textContent=pick(allLines);};
   showLine();
   clearInterval(lineTimer);lineTimer=setInterval(showLine,7000);
   elChoices.innerHTML="";
@@ -466,13 +767,16 @@ function startSleepLoop(){
     $("#sleepSub").textContent=depth>0.66?"ふかい ねむり。ゆめの まっさいちゅう。":depth>0.33?"ねむりが、すこしずつ うすれてきた。":"もうすぐ、しぜんに めが さめそう……（あと "+fmtRemain(remain)+"）";
     $("#vDream").textContent=c.rank.toFixed(2);
     $("#bDream").style.width=(c.rank*100)+"%";
+    renderTrustMeter();
     if(remain<=0){clearInterval(loopTimer);clearInterval(lineTimer);naturalWake();}
   },250);
 }
 function earListen(){
   const c=st.cycle;
   if(c.earsUsed<2){
-    c.earsUsed++;save();
+    c.earsUsed++;
+    trustUp(0.01); // 耳を澄ます=小さな信頼
+    save();
     typeText("「……"+c.seeds[c.earsUsed-1]+"……むにゃ……」");
   }else{
     typeText("すうすう……。（もう、ねいきしか きこえない）");
@@ -493,63 +797,119 @@ scene.addEventListener("click",()=>{
 
 /* ============ wake sequences ============ */
 function stopLoops(){clearInterval(loopTimer);clearInterval(lineTimer);}
+
 async function forcedWake(){
   stopLoops();
+  trustDown(0.04); // 強制覚醒でしんらい下降
   st.forcedWakes++;
-  st.diary.push({t:now(),type:"forced",text:"（おこされて、きえてしまった夢）",report:null});
+  st.diary.push({t:now(),type:"forced",text:"（おこされて、きえてしまった夢）",report:null,trust:st.trust});
   st.cycle.phase="awake";save();
   setScene("awake");
   elSpeaker.textContent="ゆめみ";
   elChoices.innerHTML="";
   $("#vSleep").textContent="0.00";$("#bSleep").style.width="0%";
-  await say("……ふえっ？！");
-  await say("あ……おはよ……。");
-  await say("ごめんね。なんの夢を みてたか……わすれちゃった。");
-  await say("むりやり おこされると、ゆめは、にげちゃうんだ。");
+
+  // trust依存セリフ
+  if(st.trust<0.3){
+    await say("……ふえっ？！");
+    await say("また、おこした……。");
+    await say("ゆめ、ぜんぶ きえちゃった。");
+  }else if(st.trust>=0.6){
+    await say("……ふえっ？！");
+    await say("あ……おはよ……。");
+    await say("ごめんね。きみのこと、しんじてたのに。");
+    await say("なんの夢を みてたか……わすれちゃった。");
+  }else{
+    await say("……ふえっ？！");
+    await say("あ……おはよ……。");
+    await say("ごめんね。なんの夢を みてたか……わすれちゃった。");
+    await say("むりやり おこされると、ゆめは、にげちゃうんだ。");
+  }
   await say("……つぎは、しぜんに おきるまで まっててくれると、うれしいな。");
   await say("もう すこしだけ、ねるね……。");
   st.cycle=newCycle(0,{short:true,rank:Math.max(0.15,st.cycle.rank*0.5)});
-  save();renderShelf();startSleepLoop();
+  save();renderShelf();renderTrustMeter();startSleepLoop();
 }
+
 async function naturalWake(){
   stopLoops();
   const c=st.cycle;
-  c.phase="awake";st.naturalWakes++;save();
+  c.phase="awake";st.naturalWakes++;st.totalNaturalWakes++;
+  trustUp(0.02); // 自然覚醒=しんらい小上昇
+  save();
   setScene("awake");
   elSpeaker.textContent="ゆめみ";
   elChoices.innerHTML="";
   $("#vSleep").textContent="0.00";$("#bSleep").style.width="0%";
-  renderShelf();
+  renderShelf();renderTrustMeter();
+
   await say("ん……ふああ……。");
   if(st.naturalWakes===1)await say("……あ。おはよ。きみが まっててくれたんだ。");
+  else if(st.trust>=0.7)await say("おはよ。……きてくれてた。うれしいな。");
   else await say("おはよ。きょうも、きてくれたんだ。");
   if(c.missed)await say("……ほんとはね、いちど おきたんだけど。きみが いなかったから、もういっかい ねてたの。");
+
+  // 天気言及
+  if(weatherEmoji&&Math.random()<0.5){
+    await say("……そとは "+weatherEmoji+" だね。ゆめのなかでも、おなじそらだった。");
+  }
+
   await typeText("ねえ。わたしが ねている あいだ、なにを してたの？");
   const rep=await ask(REPORTS.map(r=>({label:r.label,value:r})));
   st.lastReport=rep.value.key;
+
+  // 信頼度矛盾チェック
+  const contradiction=checkTrustContradiction(rep.value.key);
+  if(contradiction){
+    await say(contradiction);
+    // 矛盾指摘 — trustの変化なし（どちらとも取れる設計）
+  }
+
   await say(rep.value.reply);
+
   const dream=genDream(c.rank,c.fragsN,c.seeds,rep.value.key,st.promiseBonus);
   st.promiseBonus=false;
-  st.diary.push({t:now(),type:"natural",text:dream,report:rep.value.label});
+  st.diary.push({t:now(),type:"natural",text:dream,report:rep.value.label,trust:st.trust});
   if(st.diary.length>100)st.diary=st.diary.slice(-100);
   save();
   await say("わたしはね、こんな夢を みたよ。");
   await say(dream);
+
+  // 約束フォローアップ
   if(st.lastPromise){
     await typeText("そういえば。このまえ「"+st.lastPromise+"」って いってたよね。……できた？");
     const pr=await ask([{label:"できたよ！",v:"done"},{label:"まだ とちゅう",v:"mid"},{label:"わすれてた……",v:"forgot"}]);
-    if(pr.v==="done"){st.promiseBonus=true;await say("えへへ。じゃあ、つぎの ゆめは、きっと いいゆめだ。");}
-    else if(pr.v==="mid")await say("うん。とちゅうって、いちばん おもしろいとこだもんね。");
-    else await say("いいよ。わすれたことも、いつか ゆめの たねに なるから。");
+    if(pr.v==="done"){
+      st.promiseBonus=true;
+      trustUp(0.08); // 約束守った！しんらい大上昇
+      await say("えへへ。うれしいな。じゃあ、つぎの ゆめは、きっと いいゆめだ。"+trustSuffix());
+    }else if(pr.v==="mid"){
+      await say("うん。とちゅうって、いちばん おもしろいとこだもんね。");
+    }else{
+      trustDown(0.03); // 忘れた — しんらい小下降
+      await say("いいよ。わすれたことも、いつか ゆめの たねに なるから。");
+    }
+    renderTrustMeter();save();
   }
+
   await typeText("つぎに あうまでに、きみは なにを したい？");
   const p=await askPromise();
   st.lastPromise=p;save();
   if(p)await say("「"+p+"」だね。おぼえておく。……ゆめのなかで、おうえんしてるね。");
   else await say("ひみつかあ。……うん、それも いいね。");
-  await say("きいてくれて、ありがと。");
+
+  const suffix=trustSuffix();
+  await say("きいてくれて、ありがと。"+(suffix?"\n"+suffix:""));
   await say("……ふあ。ごめん、もう ねむくて。");
   await say("おやすみ。つぎの夢で、きみのこと さがしてみるね。");
+
+  // コウノトリ判定
+  if(checkStork()){
+    await sleep(500);
+    triggerStorkModal();
+    return; // tenseiConfirm handler takes over
+  }
+
   st.cycle=newCycle(0,{rank:0.18});
   save();startSleepLoop();
 }
@@ -584,7 +944,18 @@ async function boot(){
     }
   }
   st.lastSeen=t;save();
-  renderShelf();renderDiary();
+  renderShelf();renderDiary();renderTrustMeter();
+
+  // 天気取得（非同期・失敗しても続行）
+  fetchWeather().catch(()=>{});
+
+  // 転生ペンディング確認
+  if(st.storkPending){
+    // crashed mid-tensei, resume
+    startStorkSequence();
+    return;
+  }
+
   if(!st.seenIntro){
     st.seenIntro=true;save();
     setScene("sleeping");
@@ -594,8 +965,15 @@ async function boot(){
     await say("しぜんに おきるまで、そっと まってあげて。\nまっただけ、いい夢の はなしが きける。");
     await say("（……タップれんだで おこすことも できる。でも それは、さいごの しゅだん）");
   }
+
+  // gen badge
+  if(st.generation>1){
+    $("#genBadge").textContent="第"+st.generation+"章 / 累計"+st.totalNaturalWakes+"回";
+  }
+
   startSleepLoop();
 }
+
 /* keep lastSeen fresh */
 setInterval(()=>{if(st){st.lastSeen=now();save();}},15000);
 document.addEventListener("visibilitychange",()=>{if(st){st.lastSeen=now();save();}});
@@ -606,9 +984,13 @@ document.querySelectorAll("[data-close]").forEach(b=>b.onclick=()=>$("#"+b.datas
 $("#btnDiary").onclick=()=>{renderDiary();$("#mDiary").classList.add("open");};
 $("#btnInfo").onclick=()=>$("#mInfo").classList.add("open");
 document.querySelectorAll(".modal").forEach(m=>m.addEventListener("click",e=>{if(e.target===m)m.classList.remove("open");}));
+$("#tenseiConfirm").onclick=()=>doTensei();
+
 $("#btnShare").onclick=e=>{
   e.preventDefault();
-  const txt="夢見る少女は眠れない ── 起こさずに、待てますか。ねむりを Boolean じゃなく Float で愛でる、しずかな放置ゲーム。 #全人類UX改善計画";
+  const genTxt=st.generation>1?`（第${st.generation}章）`:"";
+  const trustTxt=st.trust>0.5?`しんらい${st.trust.toFixed(2)}。`:""
+  const txt=`夢見る少女は眠れない ${genTxt}── 起こさずに、待てますか。${trustTxt} ねむりを Boolean じゃなく Float で愛でる、しずかな放置ゲーム。 #全人類UX改善計画`;
   window.open("https://twitter.com/intent/tweet?text="+encodeURIComponent(txt)+"&url="+encodeURIComponent("https://osakenpiro.github.io/yumemi-shoujo/"),"_blank");
 };
 
